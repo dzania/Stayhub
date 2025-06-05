@@ -49,7 +49,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ listing, onBookingSuccess }) 
   });
 
   const watchedValues = watch();
-  const { check_in_date, check_out_date, guest_count } = watchedValues;
+  const { check_in_date, check_out_date } = watchedValues;
 
   // Calculate pricing
   const nights = check_in_date && check_out_date ? calculateNights(check_in_date, check_out_date) : 0;

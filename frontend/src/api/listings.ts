@@ -26,23 +26,26 @@ export const listingsApi = {
     await apiClient.delete(`/listings/${id}`);
   },
 
-  uploadImages: async (id: number, files: FileList): Promise<{ images: string[] }> => {
-    const images = await Promise.all(
-      Array.from(files).map(file => 
-        new Promise<{ filename: string; data: string }>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            resolve({
-              filename: file.name,
-              data: reader.result as string
-            });
-          };
-          reader.readAsDataURL(file);
-        })
-      )
-    );
+  uploadImages: async (id: number, files: File[]): Promise<{ images: any[] }> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
 
-    const response = await apiClient.post(`/listings/${id}/images`, { images });
+    const response = await apiClient.post(`/listings/${id}/images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  deleteImage: async (id: number, imageIndex: number): Promise<void> => {
+    await apiClient.delete(`/listings/${id}/images/${imageIndex}`);
+  },
+
+  reorderImages: async (id: number, imageOrder: number[]): Promise<{ images: string[] }> => {
+    const response = await apiClient.put(`/listings/${id}/images/reorder`, { image_order: imageOrder });
     return response.data;
   },
 

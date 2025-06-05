@@ -17,17 +17,17 @@ import {
   People,
   Bed,
   Bathtub,
-  Star,
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listingsApi } from '../api/listings';
 import { QUERY_KEYS } from '../constants/queryKeys';
-import { formatPrice, formatRoomCount } from '../utils/formatters';
+import { formatPrice } from '../utils/formatters';
 import { useAuth } from '../contexts/AuthContext';
 import BookingForm from '../components/common/BookingForm';
 import ReviewList from '../components/common/ReviewList';
 import RatingStars from '../components/common/RatingStars';
+import ListingMap from '../components/common/ListingMap';
 
 const ListingDetailSkeleton: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -199,6 +199,15 @@ const ListingDetail: React.FC = () => {
               </>
             )}
           </Paper>
+
+          {/* Map Section */}
+          <ListingMap
+            latitude={listing.latitude || undefined}
+            longitude={listing.longitude || undefined}
+            title={listing.title}
+            address={listing.address}
+            location={listing.location}
+          />
 
           {/* Reviews Section */}
           <Box sx={{ mb: 4 }}>

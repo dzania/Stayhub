@@ -116,7 +116,7 @@ const ReviewList: React.FC<ReviewListProps> = ({ listingId, limit }) => {
         Reviews ({reviews.length})
       </Typography>
       
-      {displayedReviews.map((review, index) => (
+      {displayedReviews.map((review) => (
         <ReviewItem key={review.id} review={review} />
       ))}
       

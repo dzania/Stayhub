@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           const userData = await authApi.getCurrentUser();
           setUser(userData);
-        } catch (error) {
+        } catch {
           localStorage.removeItem('access_token');
         }
       }
@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const register = async (userData: UserCreate) => {
-    const newUser = await authApi.register(userData);
+    const _newUser = await authApi.register(userData);
     // Auto-login after registration
     await login({ email: userData.email, password: userData.password });
   };

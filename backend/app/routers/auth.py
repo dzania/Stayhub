@@ -1,8 +1,9 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from .. import models, schemas, auth
 from ..database import get_db
+from ..services.s3_service import s3_service
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -69,4 +70,66 @@ def update_user_me(
     
     db.commit()
     db.refresh(current_user)
-    return current_user 
+    return current_user
+
+@router.post("/me/profile-image")
+async def upload_profile_image(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Upload user profile image"""
+    try:
+        # Delete old profile image if exists
+        if current_user.profile_image:
+            old_s3_key = current_user.profile_image.split('/')[-1] if '/' in current_user.profile_image else current_user.profile_image
+            s3_service.delete_image(old_s3_key)
+        
+        # Upload new image
+        upload_result = await s3_service.upload_image(
+            file=file,
+            user_id=current_user.id,
+            listing_id=None,
+            optimize=True
+        )
+        
+        # Update user profile
+        current_user.profile_image = upload_result['url']
+        db.commit()
+        db.refresh(current_user)
+        
+        return {
+            "detail": "Profile image uploaded successfully",
+            "image_url": upload_result['url']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Profile image upload failed: {str(e)}")
+
+@router.delete("/me/profile-image")
+async def delete_profile_image(
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Delete user profile image"""
+    if not current_user.profile_image:
+        raise HTTPException(status_code=404, detail="No profile image to delete")
+    
+    try:
+        # Extract S3 key from URL
+        s3_key = current_user.profile_image.split('/')[-1] if '/' in current_user.profile_image else current_user.profile_image
+        
+        # Delete from S3
+        s3_service.delete_image(s3_key)
+        
+        # Update user profile
+        current_user.profile_image = None
+        db.commit()
+        db.refresh(current_user)
+        
+        return {"detail": "Profile image deleted successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Profile image deletion failed: {str(e)}") 

@@ -8,6 +8,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     UPLOAD_DIR: str = "uploads"
     
+    # S3 Storage settings
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    S3_BUCKET_NAME: str = "stayhub-images"
+    S3_REGION: str = "us-east-1"
+    S3_ENDPOINT_URL: str = ""  # For MinIO or custom S3-compatible storage
+    S3_CUSTOM_DOMAIN: str = ""  # For CloudFront or custom CDN
+    
     # Email settings
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: int = 587

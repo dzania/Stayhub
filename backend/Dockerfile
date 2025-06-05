@@ -1,30 +1,44 @@
-FROM python:3.11
+# Production stage
+FROM python:3.11-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
-# Install Poetry
-RUN pip install poetry
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser
 
 # Set work directory
 WORKDIR /app
 
-# Copy Poetry files
-COPY pyproject.toml poetry.lock* /app/
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        postgresql-client \
+        netcat-traditional \
+        libmagic1 \
+        libmagic-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Configure poetry: Don't create virtual environment, install dependencies
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . /app/
+# Copy application code
+COPY . .
 
-# Create uploads directory
-RUN mkdir -p /app/uploads
+# Make startup script executable
+RUN chmod +x start.sh
+
+# Change ownership to non-root user
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Use startup script that runs migrations
+CMD ["./start.sh"] 

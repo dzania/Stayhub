@@ -29,7 +29,7 @@ export const isValidPassword = (password: string): { isValid: boolean; message?:
  * Validate phone number format
  */
 export const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+  const phoneRegex = /^\+?[\d\s\-()]{10,}$/;
   return phoneRegex.test(phone);
 };
 

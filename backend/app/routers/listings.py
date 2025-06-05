@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from datetime import datetime
@@ -8,6 +8,14 @@ import uuid
 from .. import models, schemas, auth
 from ..database import get_db
 from ..config import settings
+from ..services.s3_service import s3_service
+
+def parse_date(date_str: str) -> datetime:
+    """Parse date string in YYYY-MM-DD format to datetime"""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {date_str}. Expected YYYY-MM-DD")
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
@@ -36,8 +44,8 @@ def get_listings(
     skip: int = 0,
     limit: int = 20,
     location: Optional[str] = None,
-    check_in_date: Optional[datetime] = None,
-    check_out_date: Optional[datetime] = None,
+    check_in_date: Optional[str] = None,
+    check_out_date: Optional[str] = None,
     guests: Optional[int] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
@@ -60,21 +68,25 @@ def get_listings(
     
     # Check availability if dates provided
     if check_in_date and check_out_date:
+        # Parse string dates to datetime objects
+        check_in_datetime = parse_date(check_in_date)
+        check_out_datetime = parse_date(check_out_date)
+        
         unavailable_listings = db.query(models.Booking.listing_id).filter(
             and_(
                 models.Booking.status.in_(["pending", "confirmed"]),
                 or_(
                     and_(
-                        models.Booking.check_in_date <= check_in_date,
-                        models.Booking.check_out_date > check_in_date
+                        models.Booking.check_in_date <= check_in_datetime,
+                        models.Booking.check_out_date > check_in_datetime
                     ),
                     and_(
-                        models.Booking.check_in_date < check_out_date,
-                        models.Booking.check_out_date >= check_out_date
+                        models.Booking.check_in_date < check_out_datetime,
+                        models.Booking.check_out_date >= check_out_datetime
                     ),
                     and_(
-                        models.Booking.check_in_date >= check_in_date,
-                        models.Booking.check_out_date <= check_out_date
+                        models.Booking.check_in_date >= check_in_datetime,
+                        models.Booking.check_out_date <= check_out_datetime
                     )
                 )
             )
@@ -153,12 +165,13 @@ def delete_listing(
     return {"detail": "Listing deleted successfully"}
 
 @router.post("/{listing_id}/images")
-def upload_listing_images(
+async def upload_listing_images(
     listing_id: int,
-    images_data: schemas.ImageUpload,
+    files: List[UploadFile] = File(...),
     current_user: models.User = Depends(auth.get_current_host),
     db: Session = Depends(get_db)
 ):
+    """Upload images for a listing using S3 storage"""
     db_listing = db.query(models.Listing).filter(
         models.Listing.id == listing_id,
         models.Listing.host_id == current_user.id
@@ -167,21 +180,130 @@ def upload_listing_images(
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     
-    image_urls = []
-    for image_data in images_data.images:
-        # Decode base64 image and save
-        image_url = save_base64_image(image_data.data, image_data.filename)
-        image_urls.append(image_url)
+    # Upload images to S3
+    try:
+        upload_results = await s3_service.upload_multiple_images(
+            files=files,
+            user_id=current_user.id,
+            listing_id=listing_id,
+            max_files=10
+        )
+        
+        # Extract URLs from upload results
+        image_urls = [result['url'] for result in upload_results]
+        
+        # Update listing images
+        current_images = db_listing.images or []
+        current_images.extend(image_urls)
+        db_listing.images = current_images
+        
+        db.commit()
+        db.refresh(db_listing)
+        
+        return {
+            "detail": "Images uploaded successfully",
+            "images": upload_results,
+            "total_images": len(current_images)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+
+@router.delete("/{listing_id}/images/{image_index}")
+async def delete_listing_image(
+    listing_id: int,
+    image_index: int,
+    current_user: models.User = Depends(auth.get_current_host),
+    db: Session = Depends(get_db)
+):
+    """Delete a specific image from a listing"""
+    db_listing = db.query(models.Listing).filter(
+        models.Listing.id == listing_id,
+        models.Listing.host_id == current_user.id
+    ).first()
     
-    # Update listing images
+    if not db_listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    
     current_images = db_listing.images or []
-    current_images.extend(image_urls)
+    
+    if image_index >= len(current_images) or image_index < 0:
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    # Get the image URL to extract the S3 key
+    image_url = current_images[image_index]
+    
+    # Extract S3 key from URL
+    # For MinIO: http://localhost:9000/bucket/key -> key
+    # For S3: https://bucket.s3.region.amazonaws.com/key -> key
+    if '/stayhub-images/' in image_url:
+        s3_key = image_url.split('/stayhub-images/')[-1]
+    else:
+        # Fallback: assume the last part after the last slash is the key
+        s3_key = image_url.split('/')[-1] if '/' in image_url else image_url
+    
+    # Delete from S3
+    try:
+        s3_service.delete_image(s3_key)
+    except Exception as e:
+        # Log error but continue to remove from database
+        print(f"Failed to delete image from S3: {str(e)}")
+    
+    # Remove from database
+    current_images.pop(image_index)
     db_listing.images = current_images
     
     db.commit()
     db.refresh(db_listing)
     
-    return {"detail": "Images uploaded successfully", "images": image_urls}
+    return {
+        "detail": "Image deleted successfully",
+        "remaining_images": len(current_images)
+    }
+
+@router.put("/{listing_id}/images/reorder")
+async def reorder_listing_images(
+    listing_id: int,
+    image_order: List[int],
+    current_user: models.User = Depends(auth.get_current_host),
+    db: Session = Depends(get_db)
+):
+    """Reorder images for a listing"""
+    db_listing = db.query(models.Listing).filter(
+        models.Listing.id == listing_id,
+        models.Listing.host_id == current_user.id
+    ).first()
+    
+    if not db_listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    
+    current_images = db_listing.images or []
+    
+    if len(image_order) != len(current_images):
+        raise HTTPException(
+            status_code=400, 
+            detail="Image order array must match current number of images"
+        )
+    
+    if set(image_order) != set(range(len(current_images))):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid image order indices"
+        )
+    
+    # Reorder images
+    reordered_images = [current_images[i] for i in image_order]
+    db_listing.images = reordered_images
+    
+    db.commit()
+    db.refresh(db_listing)
+    
+    return {
+        "detail": "Images reordered successfully",
+        "images": reordered_images
+    }
 
 @router.get("/host/my-listings", response_model=List[schemas.Listing])
 def get_my_listings(

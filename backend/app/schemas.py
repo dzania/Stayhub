@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 # User schemas
 class UserBase(BaseModel):
@@ -45,14 +45,14 @@ class TokenData(BaseModel):
 class ListingBase(BaseModel):
     title: str
     description: Optional[str] = None
-    price_per_night: float
+    price_per_night: float = Field(..., gt=0, description="Price per night must be positive")
     location: str
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    max_guests: int = 1
-    bedrooms: int = 1
-    bathrooms: int = 1
+    max_guests: int = Field(default=1, ge=1, description="Must accommodate at least 1 guest")
+    bedrooms: int = Field(default=1, ge=0, description="Number of bedrooms cannot be negative")
+    bathrooms: int = Field(default=1, ge=0, description="Number of bathrooms cannot be negative")
     amenities: Optional[List[str]] = []
 
 class ListingCreate(ListingBase):
@@ -61,14 +61,14 @@ class ListingCreate(ListingBase):
 class ListingUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    price_per_night: Optional[float] = None
+    price_per_night: Optional[float] = Field(None, gt=0, description="Price per night must be positive")
     location: Optional[str] = None
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    max_guests: Optional[int] = None
-    bedrooms: Optional[int] = None
-    bathrooms: Optional[int] = None
+    max_guests: Optional[int] = Field(None, ge=1, description="Must accommodate at least 1 guest")
+    bedrooms: Optional[int] = Field(None, ge=0, description="Number of bedrooms cannot be negative")
+    bathrooms: Optional[int] = Field(None, ge=0, description="Number of bathrooms cannot be negative")
     amenities: Optional[List[str]] = None
     is_active: Optional[bool] = None
 
@@ -84,16 +84,12 @@ class Listing(ListingBase):
     class Config:
         from_attributes = True
 
-class ListingWithReviews(Listing):
-    reviews: List["Review"] = []
-    average_rating: Optional[float] = None
-
 # Booking schemas
 class BookingBase(BaseModel):
     listing_id: int
     check_in_date: datetime
     check_out_date: datetime
-    guest_count: int = 1
+    guest_count: int = Field(default=1, ge=1, description="Must have at least 1 guest")
     special_requests: Optional[str] = None
 
 class BookingCreate(BookingBase):
@@ -118,7 +114,7 @@ class Booking(BookingBase):
 
 # Review schemas
 class ReviewBase(BaseModel):
-    rating: int
+    rating: int = Field(..., ge=1, le=5, description="Rating must be between 1 and 5")
     comment: Optional[str] = None
 
 class ReviewCreate(ReviewBase):
@@ -140,9 +136,9 @@ class ListingSearch(BaseModel):
     location: Optional[str] = None
     check_in_date: Optional[datetime] = None
     check_out_date: Optional[datetime] = None
-    guests: Optional[int] = None
-    min_price: Optional[float] = None
-    max_price: Optional[float] = None
+    guests: Optional[int] = Field(None, ge=1, description="Must search for at least 1 guest")
+    min_price: Optional[float] = Field(None, ge=0, description="Minimum price cannot be negative")
+    max_price: Optional[float] = Field(None, gt=0, description="Maximum price must be positive")
     amenities: Optional[List[str]] = None
 
 # Image upload schemas
@@ -151,4 +147,8 @@ class ImageData(BaseModel):
     data: str  # base64 encoded image data
 
 class ImageUpload(BaseModel):
-    images: List[ImageData] 
+    images: List[ImageData]
+
+class ListingWithReviews(Listing):
+    reviews: List[Review] = []
+    average_rating: Optional[float] = None 

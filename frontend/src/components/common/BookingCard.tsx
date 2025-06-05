@@ -15,7 +15,7 @@ import {
   Divider,
 } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+// import { format } from 'date-fns'; // Removed unused import
 import { bookingsApi } from '../../api/bookings';
 import { Booking } from '../../types';
 import { formatPrice, formatDate, calculateNights } from '../../utils/formatters';
@@ -50,7 +50,7 @@ const getStatusLabel = (status: string) => {
 const BookingCard: React.FC<BookingCardProps> = ({ booking, isHost = false, onReviewClick }) => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [statusToUpdate, setStatusToUpdate] = useState<string>('');
+  const [_statusToUpdate, setStatusToUpdate] = useState<string>('');
   const queryClient = useQueryClient();
 
   const nights = calculateNights(booking.check_in_date, booking.check_out_date);
