@@ -60,7 +60,7 @@ A modern full-stack StayHub built with FastAPI, PostgreSQL, React, TypeScript, a
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/dzania/Stayhub.git
 cd stayhub
 ```
 
