@@ -5,23 +5,23 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "cd frontend && npm run start",
+    "dev:frontend": "cd frontend && pnpm run dev",
     "dev:backend": "cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
     "build": "npm run build:frontend",
-    "build:frontend": "cd frontend && npm run build",
+    "build:frontend": "cd frontend && pnpm run build",
     "install:all": "npm run install:frontend && npm run install:backend",
-    "install:frontend": "cd frontend && npm install",
+    "install:frontend": "cd frontend && pnpm install",
     "install:backend": "cd backend && poetry install",
     "lint": "npm run lint:frontend && npm run lint:backend",
-    "lint:frontend": "cd frontend && npm run lint",
+    "lint:frontend": "cd frontend && pnpm run lint",
     "lint:backend": "cd backend && flake8 app/ && black --check app/ && isort --check-only app/",
     "lint:fix": "npm run lint:fix:frontend && npm run lint:fix:backend",
-    "lint:fix:frontend": "cd frontend && npm run lint:fix",
+    "lint:fix:frontend": "cd frontend && pnpm run lint:fix",
     "lint:fix:backend": "cd backend && black app/ && isort app/",
     "type-check": "npm run type-check:frontend",
-    "type-check:frontend": "cd frontend && npm run type-check",
+    "type-check:frontend": "cd frontend && pnpm run type-check",
     "test": "npm run test:frontend",
-    "test:frontend": "cd frontend && npm run test",
+    "test:frontend": "cd frontend && pnpm run test",
     "docker:dev": "docker-compose up --build",
     "docker:prod": "docker-compose -f docker-compose.prod.yml up --build",
     "migrate": "cd backend && python run_migrations.py"
@@ -29,9 +29,6 @@
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-  "workspaces": [
-    "frontend"
-  ],
   "engines": {
     "node": ">=18.0.0"
   },

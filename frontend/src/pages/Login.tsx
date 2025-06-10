@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import FormField from '../components/common/FormField';
 import { UserLogin } from '../types';
 

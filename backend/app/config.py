@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     FROM_EMAIL: str = "noreply@stayhub.com"
     FROM_NAME: str = "StayHub"
     
+    # Stripe settings
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    FRONTEND_URL: str = "http://localhost:3000"
+    
     class Config:
         env_file = ".env"
 

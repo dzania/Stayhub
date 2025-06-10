@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import os
 from .database import engine, get_db
 from . import models
-from .routers import auth, listings, bookings, reviews
+from .routers import auth, listings, bookings, reviews, payments
 from .config import settings
 
 # Create database tables
@@ -38,6 +38,7 @@ app.include_router(auth.router)
 app.include_router(listings.router)
 app.include_router(bookings.router)
 app.include_router(reviews.router)
+app.include_router(payments.router)
 
 @app.get("/")
 def read_root():

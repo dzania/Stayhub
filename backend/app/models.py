@@ -60,8 +60,15 @@ class Booking(Base):
     check_out_date = Column(DateTime, nullable=False)
     total_price = Column(Float, nullable=False)
     guest_count = Column(Integer, default=1)
-    status = Column(String, default="pending")  # pending, confirmed, cancelled, completed
+    status = Column(String, default="pending")  # pending, confirmed, cancelled, completed, paid
     special_requests = Column(Text)
+    
+    # Payment related fields
+    stripe_payment_intent_id = Column(String, unique=True)
+    payment_status = Column(String, default="unpaid")  # unpaid, processing, paid, failed, refunded
+    payment_method = Column(String)  # card, etc.
+    refund_amount = Column(Float, default=0.0)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

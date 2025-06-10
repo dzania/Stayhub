@@ -1,8 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Layout/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -10,6 +11,7 @@ import Register from './pages/Register';
 import ListingDetail from './pages/ListingDetail';
 import Dashboard from './pages/Dashboard';
 import CreateListing from './pages/CreateListing';
+import EditListing from './pages/EditListing';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 const queryClient = new QueryClient({
@@ -60,6 +62,53 @@ const theme = createTheme({
   },
 });
 
+// Component to handle redirect logic
+const HomeRedirect: React.FC = () => {
+  const { user } = useAuth();
+  
+  // Redirect hosts to dashboard, customers to home
+  if (user?.is_host) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <Home />;
+};
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/listings/:id" element={<ListingDetail />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-listing"
+        element={
+          <ProtectedRoute requireHost>
+            <CreateListing />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/edit-listing/:id"
+        element={
+          <ProtectedRoute requireHost>
+            <EditListing />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -68,28 +117,7 @@ function App() {
         <AuthProvider>
           <Router>
             <Navbar />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/listings/:id" element={<ListingDetail />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/create-listing"
-                element={
-                  <ProtectedRoute requireHost>
-                    <CreateListing />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
+            <AppRoutes />
           </Router>
         </AuthProvider>
       </ThemeProvider>

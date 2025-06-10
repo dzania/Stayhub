@@ -57,7 +57,7 @@ export interface ListingCreate {
   description?: string;
   price_per_night: number;
   location: string;
-  address?: string;
+  address: string;
   latitude?: number;
   longitude?: number;
   max_guests: number;
@@ -81,6 +81,10 @@ export interface Booking {
   guest_count: number;
   status: string;
   special_requests?: string;
+  stripe_payment_intent_id?: string;
+  payment_status: string;
+  payment_method?: string;
+  refund_amount: number;
   created_at: string;
   updated_at?: string;
   listing: Listing;
@@ -120,4 +124,38 @@ export interface ListingSearch {
   min_price?: number;
   max_price?: number;
   amenities?: string[];
+}
+
+// Payment types
+export interface PaymentIntentResponse {
+  client_secret: string;
+  payment_intent_id: string;
+  amount: number;
+  currency: string;
+}
+
+export interface PaymentConfirmation {
+  payment_intent_id: string;
+  payment_method?: string;
+}
+
+export interface RefundRequest {
+  booking_id: number;
+  amount?: number;
+  reason?: string;
+}
+
+export interface RefundResponse {
+  refund_id: string;
+  status: string;
+  amount: number;
+}
+
+export interface PaymentStatus {
+  booking_id: number;
+  payment_status: string;
+  payment_method?: string;
+  total_price: number;
+  refund_amount: number;
+  stripe_payment_intent_id?: string;
 } 

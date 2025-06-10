@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { bookingsApi } from '../api/bookings';
 import { listingsApi } from '../api/listings';
 import { QUERY_KEYS } from '../constants/queryKeys';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import BookingCard from '../components/common/BookingCard';
 import ListingCard from '../components/common/ListingCard';
 
@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
         Dashboard
       </Typography>
       
@@ -102,24 +102,23 @@ const Dashboard: React.FC = () => {
         Welcome back, {user.first_name}!
       </Typography>
 
-      <Paper sx={{ width: '100%' }}>
+      <Box sx={{ width: '100%' }}>
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
           aria-label="dashboard tabs"
-          sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ mb: 3 }}
         >
-          {!user.is_host && <Tab label="My Bookings" />}
-          {user.is_host && <Tab label="Incoming Bookings" />}
-          {user.is_host && <Tab label="My Listings" />}
+          {!user.is_host && <Tab label="MY BOOKINGS" />}
+          {user.is_host && <Tab label="INCOMING BOOKINGS" />}
+          {user.is_host && <Tab label="MY LISTINGS" />}
         </Tabs>
 
         {/* Customer Bookings Tab */}
         {!user.is_host && (
           <TabPanel value={tabValue} index={0}>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-              My Bookings
-            </Typography>
             
             {bookingsLoading && <LoadingSkeleton />}
             
@@ -165,9 +164,6 @@ const Dashboard: React.FC = () => {
         {/* Host Incoming Bookings Tab */}
         {user.is_host && (
           <TabPanel value={tabValue} index={0}>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-              Incoming Bookings
-            </Typography>
             
             {incomingLoading && <LoadingSkeleton />}
             
@@ -207,10 +203,7 @@ const Dashboard: React.FC = () => {
         {/* Host Listings Tab */}
         {user.is_host && (
           <TabPanel value={tabValue} index={1}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                My Listings
-              </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
               <Button
                 variant="contained"
                 onClick={() => navigate('/create-listing')}
@@ -257,6 +250,7 @@ const Dashboard: React.FC = () => {
                         key={listing.id}
                         listing={listing}
                         onClick={() => navigate(`/listings/${listing.id}`)}
+                        showEditButton={true}
                       />
                     ))}
                   </Box>
@@ -265,7 +259,7 @@ const Dashboard: React.FC = () => {
             )}
           </TabPanel>
         )}
-      </Paper>
+      </Box>
     </Container>
   );
 };

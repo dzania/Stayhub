@@ -13,6 +13,7 @@ tests/
 ├── test_listings.py     # Listings CRUD and image upload tests
 ├── test_bookings.py     # Booking management tests
 ├── test_reviews.py      # Review system tests
+├── test_payments.py     # Stripe payment integration tests
 └── README.md           # This file
 ```
 
@@ -57,6 +58,9 @@ pytest tests/test_bookings.py
 
 # Run only review tests
 pytest tests/test_reviews.py
+
+# Run only payment tests
+pytest tests/test_payments.py
 
 # Run setup verification tests
 pytest tests/test_setup.py
@@ -117,6 +121,12 @@ pytest tests/test_auth.py::TestAuthRegistration::test_register_new_user_success
 - File upload simulation with various file types
 - Error handling for invalid files and permissions
 
+### Payment Testing
+- Mock Stripe service for testing without real API calls
+- Payment intent creation and confirmation testing
+- Refund processing and webhook handling tests
+- Authorization and error handling validation
+
 ### Fixture System
 - Reusable test data and objects
 - Consistent test environment setup
@@ -135,6 +145,7 @@ The test suite uses predefined test data:
 ## Mocking Strategy
 
 - **S3 Service**: Mocked to avoid real AWS calls and costs
+- **Stripe Service**: Mocked to avoid real payment processing and costs
 - **Database**: Uses SQLite instead of PostgreSQL for speed
 - **Email Service**: Would be mocked if implemented
 - **External APIs**: Mocked to ensure deterministic tests

@@ -104,6 +104,10 @@ class Booking(BookingBase):
     customer_id: int
     total_price: float
     status: str
+    stripe_payment_intent_id: Optional[str] = None
+    payment_status: str
+    payment_method: Optional[str] = None
+    refund_amount: float = 0.0
     created_at: datetime
     updated_at: Optional[datetime] = None
     listing: Listing
@@ -151,4 +155,28 @@ class ImageUpload(BaseModel):
 
 class ListingWithReviews(Listing):
     reviews: List[Review] = []
-    average_rating: Optional[float] = None 
+    average_rating: Optional[float] = None
+
+# Payment schemas
+class PaymentIntentCreate(BaseModel):
+    booking_id: int
+
+class PaymentIntentResponse(BaseModel):
+    client_secret: str
+    payment_intent_id: str
+    amount: float
+    currency: str
+
+class PaymentConfirmation(BaseModel):
+    payment_intent_id: str
+    payment_method: Optional[str] = None
+
+class RefundRequest(BaseModel):
+    booking_id: int
+    amount: Optional[float] = None
+    reason: Optional[str] = None
+
+class RefundResponse(BaseModel):
+    refund_id: str
+    status: str
+    amount: float 

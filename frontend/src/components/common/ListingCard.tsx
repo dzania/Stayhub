@@ -6,7 +6,11 @@ import {
   Typography,
   Box,
   Chip,
+  Button,
+  CardActions,
 } from '@mui/material';
+import { Edit as EditIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { Listing } from '../../types';
 import { formatPrice, formatGuestCount, truncateText } from '../../utils/formatters';
 import RatingStars from './RatingStars';
@@ -14,14 +18,22 @@ import RatingStars from './RatingStars';
 interface ListingCardProps {
   listing: Listing & { average_rating?: number; reviews?: any[] };
   onClick?: () => void;
+  showEditButton?: boolean;
 }
 
 const ListingCard: React.FC<ListingCardProps> = ({ 
   listing, 
   onClick,
+  showEditButton = false,
 }) => {
+  const navigate = useNavigate();
   const averageRating = listing.average_rating || 0;
   const reviewCount = listing.reviews?.length || 0;
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/edit-listing/${listing.id}`);
+  };
 
   return (
     <Card
@@ -100,6 +112,20 @@ const ListingCard: React.FC<ListingCardProps> = ({
           />
         </Box>
       </CardContent>
+      
+      {showEditButton && (
+        <CardActions sx={{ pt: 0, pb: 2, px: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<EditIcon />}
+            onClick={handleEditClick}
+            fullWidth
+          >
+            Edit Listing
+          </Button>
+        </CardActions>
+      )}
     </Card>
   );
 };

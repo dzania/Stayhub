@@ -1,31 +1,36 @@
 import React from 'react';
-import { TextField, TextFieldProps } from '@mui/material';
-import { Control, Controller, FieldValues, Path } from 'react-hook-form';
+import { Controller, Control, FieldError } from 'react-hook-form';
+import { TextField } from '@mui/material';
 
-interface FormFieldProps<T extends FieldValues> extends Omit<TextFieldProps, 'name'> {
-  name: Path<T>;
-  control: Control<T>;
-  rules?: object;
+interface FormFieldProps {
+  name: string;
+  control: Control<any>;
+  label: string;
+  error?: FieldError;
+  [key: string]: any;
 }
 
-const FormField = <T extends FieldValues>({
+const FormField: React.FC<FormFieldProps> = ({
   name,
   control,
-  rules,
-  ...textFieldProps
-}: FormFieldProps<T>) => {
+  label,
+  error,
+  ...rest
+}) => {
   return (
     <Controller
       name={name}
       control={control}
-      rules={rules}
-      render={({ field, fieldState: { error } }) => (
+      render={({ field }) => (
         <TextField
           {...field}
-          {...textFieldProps}
+          {...rest}
+          label={label}
+          fullWidth
+          variant="outlined"
           error={!!error}
-          helperText={error?.message}
-          value={field.value || ''}
+          helperText={error ? error.message : null}
+          value={field.value ?? ''}
         />
       )}
     />

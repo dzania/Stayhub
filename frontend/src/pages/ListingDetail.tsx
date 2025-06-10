@@ -23,7 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { listingsApi } from '../api/listings';
 import { QUERY_KEYS } from '../constants/queryKeys';
 import { formatPrice } from '../utils/formatters';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import BookingForm from '../components/common/BookingForm';
 import ReviewList from '../components/common/ReviewList';
 import RatingStars from '../components/common/RatingStars';

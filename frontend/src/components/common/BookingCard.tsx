@@ -21,6 +21,7 @@ import { Booking } from '../../types';
 import { formatPrice, formatDate, calculateNights } from '../../utils/formatters';
 import { QUERY_KEYS } from '../../constants/queryKeys';
 import ReviewForm from './ReviewForm';
+import { PaymentWrapper, PaymentStatus } from '../Payment';
 
 interface BookingCardProps {
   booking: Booking;
@@ -50,6 +51,7 @@ const getStatusLabel = (status: string) => {
 const BookingCard: React.FC<BookingCardProps> = ({ booking, isHost = false, onReviewClick }) => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [_statusToUpdate, setStatusToUpdate] = useState<string>('');
   const queryClient = useQueryClient();
 
@@ -59,6 +61,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, isHost = false, onRe
   const isCompleted = booking.status === 'completed';
   const isPast = checkOutDate < new Date();
   const canCancel = booking.status === 'pending' && checkInDate > new Date();
+  const needsPayment = !isHost && booking.status === 'confirmed' && booking.payment_status === 'unpaid';
 
   const cancelBookingMutation = useMutation({
     mutationFn: bookingsApi.cancelBooking,
@@ -93,6 +96,11 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, isHost = false, onRe
     } else {
       setReviewDialogOpen(true);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setPaymentDialogOpen(false);
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BOOKINGS.MY_BOOKINGS });
   };
 
   return (
@@ -173,6 +181,15 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, isHost = false, onRe
             </Box>
           )}
 
+          {/* Payment Status */}
+          <Box sx={{ mb: 2 }}>
+            <PaymentStatus 
+              booking={booking} 
+              isHost={isHost}
+              onRefundSuccess={() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BOOKINGS.INCOMING })}
+            />
+          </Box>
+
           <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
             {isHost && booking.status === 'pending' && (
               <>
@@ -203,6 +220,17 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, isHost = false, onRe
                 disabled={updateStatusMutation.isPending}
               >
                 Mark Complete
+              </Button>
+            )}
+
+            {needsPayment && (
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                onClick={() => setPaymentDialogOpen(true)}
+              >
+                Pay Now
               </Button>
             )}
 
@@ -260,6 +288,23 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, isHost = false, onRe
         listingId={booking.listing.id}
         listingTitle={booking.listing.title}
       />
+
+      {/* Payment Dialog */}
+      <Dialog 
+        open={paymentDialogOpen} 
+        onClose={() => setPaymentDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Complete Payment</DialogTitle>
+        <DialogContent>
+          <PaymentWrapper
+            booking={booking}
+            onPaymentSuccess={handlePaymentSuccess}
+            onClose={() => setPaymentDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

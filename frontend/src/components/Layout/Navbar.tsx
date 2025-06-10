@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Home } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();

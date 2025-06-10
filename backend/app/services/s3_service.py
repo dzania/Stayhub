@@ -2,6 +2,7 @@ import os
 import uuid
 import io
 import logging
+import json
 from typing import List, Optional, Tuple
 from datetime import datetime, timedelta
 import boto3
@@ -41,6 +42,56 @@ class S3Service:
         except NoCredentialsError:
             logger.error("AWS credentials not found")
             raise HTTPException(status_code=500, detail="Storage service configuration error")
+
+        self.create_bucket_if_not_exists()
+
+    def create_bucket_if_not_exists(self):
+        """Create the S3 bucket if it does not exist and set public read policy"""
+        try:
+            self.s3_client.head_bucket(Bucket=self.bucket_name)
+            logger.info(f"Bucket '{self.bucket_name}' already exists.")
+        except ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                logger.info(f"Bucket '{self.bucket_name}' not found. Creating bucket.")
+                try:
+                    if self.region == 'us-east-1':
+                         self.s3_client.create_bucket(Bucket=self.bucket_name)
+                    else:
+                        self.s3_client.create_bucket(
+                            Bucket=self.bucket_name,
+                            CreateBucketConfiguration={'LocationConstraint': self.region}
+                        )
+                    logger.info(f"Bucket '{self.bucket_name}' created successfully.")
+                except ClientError as create_error:
+                    logger.error(f"Failed to create bucket '{self.bucket_name}': {create_error}")
+                    raise
+            else:
+                logger.error(f"Error checking bucket '{self.bucket_name}': {e}")
+                raise
+        
+        # Set public read policy
+        try:
+            policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": ["s3:GetObject"],
+                        "Resource": [f"arn:aws:s3:::{self.bucket_name}/*"]
+                    }
+                ]
+            }
+            self.s3_client.put_bucket_policy(
+                Bucket=self.bucket_name,
+                Policy=json.dumps(policy)
+            )
+            logger.info(f"Public read policy set for bucket '{self.bucket_name}'.")
+        except ClientError as e:
+            logger.error(f"Failed to set bucket policy for '{self.bucket_name}': {e}")
+            # This might fail if the user/role doesn't have PutBucketPolicy permissions,
+            # but we can often still proceed with uploads.
+            # Depending on requirements, you might want to raise an exception here.
 
     def _validate_image(self, file: UploadFile) -> None:
         """Validate image file type, size, and format"""
@@ -269,7 +320,11 @@ class S3Service:
         if settings.S3_CUSTOM_DOMAIN:
             return f"https://{settings.S3_CUSTOM_DOMAIN}/{file_key}"
         elif settings.S3_ENDPOINT_URL:
-            return f"{settings.S3_ENDPOINT_URL}/{self.bucket_name}/{file_key}"
+            # For local MinIO, use nginx proxy URL
+            if "minio:9000" in settings.S3_ENDPOINT_URL:
+                return f"http://localhost/minio/{self.bucket_name}/{file_key}"
+            else:
+                return f"{settings.S3_ENDPOINT_URL}/{self.bucket_name}/{file_key}"
         else:
             return f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{file_key}"
 

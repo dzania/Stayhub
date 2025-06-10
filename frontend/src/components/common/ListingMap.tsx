@@ -80,7 +80,7 @@ const ListingMap: React.FC<ListingMapProps> = ({
     };
 
     initializeCoordinates();
-  }, [latitude, longitude, address, location, hasValidCoordinates]);
+  }, [latitude, longitude, address, location, hasValidCoordinates, defaultLat, defaultLng]);
 
   if (!coordinates) {
     return (
